@@ -1,5 +1,11 @@
 # Melo Parking
 
+## Live Demo
+
+🚀 [Open Melo Parking](https://melo-parking.onrender.com)
+
+> The free hosting instance may take up to 60 seconds to start after a period of inactivity.
+
 ## Interface
 
 ![Painel do Melo Parking](docs/melo-parking-dashboard.png)
