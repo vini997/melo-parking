@@ -12,6 +12,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var banco = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await banco.Database.MigrateAsync();
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
