@@ -401,6 +401,9 @@ const formVeiculo = document.getElementById("formVeiculo");
 
 formVeiculo.addEventListener("submit", async function (evento) {
     evento.preventDefault();
+    const botaoEntrada = formVeiculo.querySelector('button[type="submit"]');
+    botaoEntrada.disabled = true;
+    botaoEntrada.textContent = "Registrando...";
 
     const mensagem = document.getElementById("mensagemVeiculo");
 
@@ -436,12 +439,16 @@ formVeiculo.addEventListener("submit", async function (evento) {
         mensagem.className = "alert alert-success";
 
         formVeiculo.reset();
-        await carregarRelatorio();
+       await carregarRelatorio();
         await carregarVeiculos();
-    } catch (erro) {
-        mensagem.textContent = erro.message;
-        mensagem.className = "alert alert-danger";
-    }
+
+} catch (erro) {
+    mensagem.textContent = erro.message;
+    mensagem.className = "alert alert-danger";
+} finally {
+    botaoEntrada.disabled = false;
+    botaoEntrada.textContent = "Registrar entrada";
+}
 });
 function adicionarCelula(linha, texto) {
     const celula = document.createElement("td");
