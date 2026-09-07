@@ -1,5 +1,9 @@
 # Melo Parking
 
+## Interface
+
+![Painel do Melo Parking](docs/melo-parking-dashboard.png)
+
 Melo Parking is a full-stack parking management system built with
 C#, .NET, PostgreSQL, Entity Framework Core, JavaScript, and Bootstrap.
 
