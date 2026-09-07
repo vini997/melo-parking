@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Melo Parking</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .navbar {
+            background-color: #14213d;
+        }
+
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .valor {
+            color: #198754;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark">
+        <div class="container">
+            <span class="navbar-brand fw-bold">
+                🚗 Melo Parking
+            </span>
+
+            <span class="text-white">
+                Sistema de Estacionamento
+            </span>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+        <div class="mb-4">
+            <h1 class="fw-bold">Painel diário</h1>
+            <p class="text-secondary" id="dataRelatorio">
+                Carregando relatório...
+            </p>
+        </div>
+
+        <div
+            id="mensagemErro"
+            class="alert alert-danger d-none"
+        ></div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-xl-3">
+                <div class="card p-4">
+                    <span class="text-secondary">Entradas hoje</span>
+                    <h2 id="entradasHoje" class="mt-2">0</h2>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="card p-4">
+                    <span class="text-secondary">Saídas hoje</span>
+                    <h2 id="saidasHoje" class="mt-2">0</h2>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="card p-4">
+                    <span class="text-secondary">
+                        Estacionados agora
+                    </span>
+                    <h2 id="estacionadosAgora" class="mt-2">0</h2>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-xl-3">
+                <div class="card p-4">
+                    <span class="text-secondary">Receita hoje</span>
+                    <h2 id="totalRecebido" class="valor mt-2">
+                        $0.00
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 mt-4">
+            <h4 class="mb-4">Recebimentos por forma</h4>
+
+            <div class="row text-center">
+                <div class="col">
+                    <strong>Dinheiro</strong>
+                    <p id="dinheiro">$0.00</p>
+                </div>
+
+                <div class="col">
+                    <strong>Cartão</strong>
+                    <p id="cartao">$0.00</p>
+                </div>
+
+                <div class="col">
+                    <strong>Zelle</strong>
+                    <p id="zelle">$0.00</p>
+                </div>
+
+                <div class="col">
+                    <strong>Outros</strong>
+                    <p id="outro">$0.00</p>
+                </div>
+            </div>
+        </div>
+        <section class="card p-4 mt-4">
+    <h4 class="mb-4">Cadastrar cliente</h4>
+
+    <div
+        id="mensagemCliente"
+        class="alert d-none"
+        role="alert"
+    ></div>
+
+    <form id="formCliente">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="nomeCliente" class="form-label">
+                    Nome
+                </label>
+
+                <input
+                    id="nomeCliente"
+                    class="form-control"
+                    type="text"
+                    required
+                >
+            </div>
+
+            <div class="col-md-4">
+                <label for="telefoneCliente" class="form-label">
+                    Telefone
+                </label>
+
+                <input
+                    id="telefoneCliente"
+                    class="form-control"
+                    type="tel"
+                >
+            </div>
+
+            <div class="col-md-4">
+                <label for="emailCliente" class="form-label">
+                    E-mail
+                </label>
+
+                <input
+                    id="emailCliente"
+                    class="form-control"
+                    type="email"
+                >
+            </div>
+
+            <div class="col-12">
+                <button class="btn btn-primary" type="submit">
+                    Cadastrar cliente
+                </button>
+            </div>
+        </div>
+    </form>
+</section>
+<section class="card p-4 mt-4">
+    <h4 class="mb-4">Registrar entrada de veículo</h4>
+
+    <div
+        id="mensagemVeiculo"
+        class="alert d-none"
+        role="alert"
+    ></div>
+
+    <form id="formVeiculo">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="placaVeiculo" class="form-label">
+                    Placa
+                </label>
+
+                <input
+                    id="placaVeiculo"
+                    class="form-control"
+                    type="text"
+                    required
+                >
+            </div>
+
+            <div class="col-md-3">
+                <label for="marcaVeiculo" class="form-label">
+                    Marca
+                </label>
+
+                <input
+                    id="marcaVeiculo"
+                    class="form-control"
+                    type="text"
+                    required
+                >
+            </div>
+
+            <div class="col-md-3">
+                <label for="modeloVeiculo" class="form-label">
+                    Modelo
+                </label>
+
+                <input
+                    id="modeloVeiculo"
+                    class="form-control"
+                    type="text"
+                    required
+                >
+            </div>
+
+            <div class="col-md-3">
+                <label for="corVeiculo" class="form-label">
+                    Cor
+                </label>
+
+                <input
+                    id="corVeiculo"
+                    class="form-control"
+                    type="text"
+                >
+            </div>
+
+            <div class="col-md-6">
+                <label for="clienteVeiculo" class="form-label">
+                    Cliente
+                </label>
+
+                <select
+                    id="clienteVeiculo"
+                    class="form-select"
+                    required
+                >
+                    <option value="">Selecione um cliente</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button class="btn btn-success" type="submit">
+                    Registrar entrada
+                </button>
+            </div>
+        </div>
+    </form>
+</section>
+<section class="card p-4 mt-4">
+    <h4 class="mb-4">Veículos estacionados</h4>
+
+    <div
+        id="mensagemSaida"
+        class="alert d-none"
+        role="alert"
+    ></div>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Placa</th>
+                    <th>Veículo</th>
+                    <th>Cliente</th>
+                    <th>Entrada</th>
+                    <th>Pagamento</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody id="tabelaVeiculos"></tbody>
+        </table>
+    </div>
+</section>
+    </main>
+
+    <script>
+        function moeda(valor) {
+            return Number(valor).toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD"
+            });
+        }
+
+        async function carregarRelatorio() {
+            try {
+                const resposta = await fetch("/relatorios/diario");
+
+                if (!resposta.ok) {
+                    throw new Error("Não foi possível carregar o relatório.");
+                }
+
+                const dados = await resposta.json();
+                const formas = dados.recebimentosPorForma;
+
+                document.getElementById("dataRelatorio").textContent =
+                    `Relatório de ${dados.data}`;
+
+                document.getElementById("entradasHoje").textContent =
+                    dados.entradasHoje;
+
+                document.getElementById("saidasHoje").textContent =
+                    dados.saidasHoje;
+
+                document.getElementById("estacionadosAgora").textContent =
+                    dados.estacionadosAgora;
+
+                document.getElementById("totalRecebido").textContent =
+                    moeda(dados.totalRecebidoHoje);
+
+                document.getElementById("dinheiro").textContent =
+                    moeda(formas.dinheiro);
+
+                document.getElementById("cartao").textContent =
+                    moeda(formas.cartao);
+
+                document.getElementById("zelle").textContent =
+                    moeda(formas.zelle);
+
+                document.getElementById("outro").textContent =
+                    moeda(formas.outro);
+            } catch (erro) {
+                const mensagem = document.getElementById("mensagemErro");
+
+                mensagem.textContent = erro.message;
+                mensagem.classList.remove("d-none");
+            }
+        }
+
+        const formCliente = document.getElementById("formCliente");
+
+formCliente.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+
+    const mensagem = document.getElementById("mensagemCliente");
+
+    const cliente = {
+        nome: document.getElementById("nomeCliente").value,
+        telefone: document.getElementById("telefoneCliente").value,
+        email: document.getElementById("emailCliente").value
+    };
+
+    try {
+        const resposta = await fetch("/clientes", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(cliente)
+        });
+
+        if (!resposta.ok) {
+            const detalhe = await resposta.text();
+            throw new Error(detalhe || "Não foi possível cadastrar.");
+        }
+
+        const clienteCriado = await resposta.json();
+
+        mensagem.textContent =
+            `Cliente ${clienteCriado.nome} cadastrado com sucesso!`;
+
+        mensagem.className = "alert alert-success";
+        formCliente.reset();
+        await carregarClientes(); 
+    } catch (erro) {
+        mensagem.textContent = erro.message;
+        mensagem.className = "alert alert-danger";
+    }
+});
+async function carregarClientes() {
+    const resposta = await fetch("/clientes");
+    const clientes = await resposta.json();
+
+    const selecao = document.getElementById("clienteVeiculo");
+
+    selecao.innerHTML =
+        '<option value="">Selecione um cliente</option>';
+
+    clientes.forEach(function (cliente) {
+        const opcao = document.createElement("option");
+
+        opcao.value = cliente.id;
+        opcao.textContent = cliente.nome;
+
+        selecao.appendChild(opcao);
+    });
+}
+
+const formVeiculo = document.getElementById("formVeiculo");
+
+formVeiculo.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+
+    const mensagem = document.getElementById("mensagemVeiculo");
+
+    const veiculo = {
+        placa: document.getElementById("placaVeiculo").value,
+        marca: document.getElementById("marcaVeiculo").value,
+        modelo: document.getElementById("modeloVeiculo").value,
+        cor: document.getElementById("corVeiculo").value,
+        clienteId: Number(
+            document.getElementById("clienteVeiculo").value
+        )
+    };
+
+    try {
+        const resposta = await fetch("/veiculos", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(veiculo)
+        });
+
+        if (!resposta.ok) {
+            const detalhe = await resposta.text();
+            throw new Error(detalhe || "Não foi possível registrar.");
+        }
+
+        const veiculoCriado = await resposta.json();
+
+        mensagem.textContent =
+            `Entrada do veículo ${veiculoCriado.placa} registrada!`;
+
+        mensagem.className = "alert alert-success";
+
+        formVeiculo.reset();
+
+        await carregarRelatorio();
+    } catch (erro) {
+        mensagem.textContent = erro.message;
+        mensagem.className = "alert alert-danger";
+    }
+});
+function adicionarCelula(linha, texto) {
+    const celula = document.createElement("td");
+    celula.textContent = texto;
+    linha.appendChild(celula);
+
+    return celula;
+}
+
+async function carregarVeiculos() {
+    const resposta = await fetch("/veiculos");
+    const veiculos = await resposta.json();
+
+    const estacionados = veiculos.filter(
+        veiculo => veiculo.ativo
+    );
+
+    const tabela = document.getElementById("tabelaVeiculos");
+    tabela.innerHTML = "";
+
+    if (estacionados.length === 0) {
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+
+        celula.colSpan = 6;
+        celula.className = "text-center text-secondary py-4";
+        celula.textContent = "Nenhum veículo estacionado.";
+
+        linha.appendChild(celula);
+        tabela.appendChild(linha);
+
+        return;
+    }
+
+    estacionados.forEach(function (veiculo) {
+        const linha = document.createElement("tr");
+
+        adicionarCelula(linha, veiculo.placa);
+
+        adicionarCelula(
+            linha,
+            `${veiculo.marca} ${veiculo.modelo}`
+        );
+
+        adicionarCelula(
+            linha,
+            veiculo.cliente?.nome ??
+            `Cliente #${veiculo.clienteId}`
+        );
+
+        adicionarCelula(
+            linha,
+            new Date(veiculo.dataEntrada).toLocaleString(
+                "pt-BR",
+                {
+                    timeZone: "America/New_York"
+                }
+            )
+        );
+
+        const celulaPagamento = document.createElement("td");
+        const selecao = document.createElement("select");
+
+        selecao.className = "form-select";
+        selecao.innerHTML = `
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Cartao">Cartão</option>
+            <option value="Zelle">Zelle</option>
+            <option value="Outro">Outro</option>
+        `;
+
+        celulaPagamento.appendChild(selecao);
+        linha.appendChild(celulaPagamento);
+
+        const celulaAcao = document.createElement("td");
+        const botao = document.createElement("button");
+
+        botao.className = "btn btn-danger";
+        botao.textContent = "Registrar saída";
+
+        botao.addEventListener("click", function () {
+            registrarSaida(veiculo.id, selecao.value);
+        });
+
+        celulaAcao.appendChild(botao);
+        linha.appendChild(celulaAcao);
+        tabela.appendChild(linha);
+    });
+}
+
+async function registrarSaida(veiculoId, formaPagamento) {
+    const confirmou = confirm(
+        "Deseja registrar a saída deste veículo?"
+    );
+
+    if (!confirmou) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemSaida");
+
+    try {
+        const resposta = await fetch(
+            `/veiculos/${veiculoId}/saida`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    formaPagamento: formaPagamento
+                })
+            }
+        );
+
+        if (!resposta.ok) {
+            const detalhe = await resposta.text();
+            throw new Error(
+                detalhe || "Não foi possível registrar a saída."
+            );
+        }
+
+        const resultado = await resposta.json();
+
+        mensagem.textContent =
+            `Saída registrada. Total: ${moeda(
+                resultado.totalPagar
+            )} — ${resultado.formaPagamento}`;
+
+        mensagem.className = "alert alert-success";
+
+        await carregarVeiculos();
+        await carregarRelatorio();
+    } catch (erro) {
+        mensagem.textContent = erro.message;
+        mensagem.className = "alert alert-danger";
+    }
+}
+        carregarClientes();
+        carregarVeiculos();
+        carregarRelatorio();
+    </script>
+</body>
+</html>
