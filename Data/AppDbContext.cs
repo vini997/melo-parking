@@ -12,11 +12,15 @@ public class AppDbContext : DbContext
 
     public DbSet<Veiculo> Veiculos => Set<Veiculo>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
        modelBuilder.Entity<Veiculo>()
-    .HasIndex(v => v.Placa);
+            .HasIndex(v => v.Placa);
 
         modelBuilder.Entity<Veiculo>()
             .Property(v => v.ValorPago)

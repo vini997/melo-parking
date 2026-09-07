@@ -1,6 +1,13 @@
 using EstacionamentoAPI.Data;
 using EstacionamentoAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +16,36 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("A chave JWT não foi configurada.");
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 var app = builder.Build();
 
@@ -16,10 +53,42 @@ using (var scope = app.Services.CreateScope())
 {
     var banco = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await banco.Database.MigrateAsync();
+
+    var adminEmail = app.Configuration["Admin:Email"];
+    var adminPassword = app.Configuration["Admin:Password"];
+
+    if (!string.IsNullOrWhiteSpace(adminEmail) &&
+        !string.IsNullOrWhiteSpace(adminPassword))
+    {
+        var usuarioExistente = await banco.Usuarios
+            .FirstOrDefaultAsync(u => u.Email == adminEmail);
+
+        if (usuarioExistente is null)
+        {
+            var administrador = new Usuario
+            {
+                Nome = "Administrador",
+                Email = adminEmail
+            };
+
+            var passwordHasher = new PasswordHasher<Usuario>();
+
+            administrador.SenhaHash = passwordHasher.HashPassword(
+                administrador,
+                adminPassword);
+
+            banco.Usuarios.Add(administrador);
+            await banco.SaveChangesAsync();
+
+            Console.WriteLine("Administrador criado com sucesso.");
+        }
+    }
 }
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -312,5 +381,66 @@ app.MapGet("/relatorios/diario", async (AppDbContext banco) =>
         VeiculosQueSairam = saidas
     });
 });
+
+app.MapPost("/login", async (
+    LoginRequest dados,
+    AppDbContext banco,
+    IConfiguration configuration) =>
+{
+    var email = dados.Email.Trim().ToLower();
+
+    var usuario = await banco.Usuarios
+        .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+    if (usuario is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var passwordHasher = new PasswordHasher<Usuario>();
+
+    var resultado = passwordHasher.VerifyHashedPassword(
+        usuario,
+        usuario.SenhaHash,
+        dados.Senha);
+
+    if (resultado == PasswordVerificationResult.Failed)
+    {
+        return Results.Unauthorized();
+    }
+
+    var claims = new[]
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
+        new Claim(ClaimTypes.Name, usuario.Nome),
+        new Claim(ClaimTypes.Role, "Administrador")
+    };
+
+    var chave = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
+
+    var credenciais = new SigningCredentials(
+        chave,
+        SecurityAlgorithms.HmacSha256);
+
+    var token = new JwtSecurityToken(
+        issuer: configuration["Jwt:Issuer"],
+        audience: configuration["Jwt:Audience"],
+        claims: claims,
+        expires: DateTime.UtcNow.AddHours(8),
+        signingCredentials: credenciais);
+
+    return Results.Ok(new
+    {
+        token = new JwtSecurityTokenHandler().WriteToken(token),
+        usuario = new
+        {
+            usuario.Id,
+            usuario.Nome,
+            usuario.Email
+        }
+    });
+}).AllowAnonymous();
 
 app.Run();

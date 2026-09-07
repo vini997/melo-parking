@@ -29,10 +29,68 @@
         .valor {
             color: #198754;
         }
+        .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #14213d, #1f3c68);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 36px;
+    border-radius: 18px;
+    background-color: white;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
     </style>
 </head>
 
 <body>
+    <section id="telaLogin" class="login-page">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <div class="fs-1">🚗</div>
+            <h1 class="fw-bold">Melo Parking</h1>
+            <p class="text-secondary">Acesso administrativo</p>
+        </div>
+
+        <form id="formLogin">
+            <div class="mb-3">
+                <label for="loginEmail" class="form-label">E-mail</label>
+                <input
+                    id="loginEmail"
+                    type="email"
+                    class="form-control"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="mb-3">
+                <label for="loginSenha" class="form-label">Senha</label>
+                <input
+                    id="loginSenha"
+                    type="password"
+                    class="form-control"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div id="mensagemLogin" class="alert alert-danger d-none"></div>
+
+            <button id="botaoLogin" class="btn btn-primary w-100" type="submit">
+                Entrar
+            </button>
+        </form>
+    </div>
+</section>
+
+<div id="painel" class="d-none">
     <nav class="navbar navbar-dark">
         <div class="container">
             <span class="navbar-brand fw-bold">
@@ -42,6 +100,13 @@
             <span class="text-white">
                 Sistema de Estacionamento
             </span>
+            <button
+                type="button"
+                class="btn btn-outline-light btn-sm"
+                onclick="sair()"
+            >
+                Sair
+            </button>
         </div>
     </nav>
 
@@ -284,8 +349,97 @@
     </div>
 </section>
     </main>
-
+</div>
     <script>
+        let tokenAcesso = sessionStorage.getItem("tokenAcesso");
+
+const telaLogin = document.getElementById("telaLogin");
+const painel = document.getElementById("painel");
+const formLogin = document.getElementById("formLogin");
+const mensagemLogin = document.getElementById("mensagemLogin");
+const botaoLogin = document.getElementById("botaoLogin");
+
+async function apiFetch(url, options = {}) {
+    const headers = new Headers(options.headers || {});
+
+    if (tokenAcesso) {
+        headers.set("Authorization", `Bearer ${tokenAcesso}`);
+    }
+
+    const resposta = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    if (resposta.status === 401) {
+        sessionStorage.removeItem("tokenAcesso");
+        tokenAcesso = null;
+        painel.classList.add("d-none");
+        telaLogin.classList.remove("d-none");
+        throw new Error("Sua sessão expirou. Entre novamente.");
+    }
+
+    return resposta;
+}
+
+function abrirPainel() {
+    telaLogin.classList.add("d-none");
+    painel.classList.remove("d-none");
+
+    carregarClientes();
+    carregarVeiculos();
+    carregarRelatorio();
+}
+
+function sair() {
+    sessionStorage.removeItem("tokenAcesso");
+    tokenAcesso = null;
+
+    painel.classList.add("d-none");
+    telaLogin.classList.remove("d-none");
+
+    formLogin.reset();
+    document.getElementById("loginEmail").focus();
+}
+
+formLogin.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+
+    mensagemLogin.classList.add("d-none");
+    botaoLogin.disabled = true;
+    botaoLogin.textContent = "Entrando...";
+
+    try {
+        const resposta = await fetch("/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: document.getElementById("loginEmail").value,
+                senha: document.getElementById("loginSenha").value
+            })
+        });
+
+        if (!resposta.ok) {
+            throw new Error("E-mail ou senha inválidos.");
+        }
+
+        const resultado = await resposta.json();
+
+        tokenAcesso = resultado.token;
+        sessionStorage.setItem("tokenAcesso", tokenAcesso);
+
+        formLogin.reset();
+        abrirPainel();
+    } catch (erro) {
+        mensagemLogin.textContent = erro.message;
+        mensagemLogin.classList.remove("d-none");
+    } finally {
+        botaoLogin.disabled = false;
+        botaoLogin.textContent = "Entrar";
+    }
+});
         function moeda(valor) {
             return Number(valor).toLocaleString("en-US", {
                 style: "currency",
@@ -295,7 +449,7 @@
 
         async function carregarRelatorio() {
             try {
-                const resposta = await fetch("/relatorios/diario");
+                const resposta = await apiFetch("/relatorios/diario");
 
                 if (!resposta.ok) {
                     throw new Error("Não foi possível carregar o relatório.");
@@ -352,7 +506,7 @@ formCliente.addEventListener("submit", async function (evento) {
     };
 
     try {
-        const resposta = await fetch("/clientes", {
+        const resposta = await apiFetch("/clientes", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -379,7 +533,7 @@ formCliente.addEventListener("submit", async function (evento) {
     }
 });
 async function carregarClientes() {
-    const resposta = await fetch("/clientes");
+    const resposta = await apiFetch("/clientes");
     const clientes = await resposta.json();
 
     const selecao = document.getElementById("clienteVeiculo");
@@ -418,7 +572,7 @@ formVeiculo.addEventListener("submit", async function (evento) {
     };
 
     try {
-        const resposta = await fetch("/veiculos", {
+        const resposta = await apiFetch("/veiculos", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -459,7 +613,7 @@ function adicionarCelula(linha, texto) {
 }
 
 async function carregarVeiculos() {
-    const resposta = await fetch("/veiculos");
+    const resposta = await apiFetch("/veiculos");
     const veiculos = await resposta.json();
 
     const estacionados = veiculos.filter(
@@ -551,7 +705,7 @@ async function registrarSaida(veiculoId, formaPagamento) {
     const mensagem = document.getElementById("mensagemSaida");
 
     try {
-        const resposta = await fetch(
+        const resposta = await apiFetch(
             `/veiculos/${veiculoId}/saida`,
             {
                 method: "POST",
@@ -587,9 +741,9 @@ async function registrarSaida(veiculoId, formaPagamento) {
         mensagem.className = "alert alert-danger";
     }
 }
-        carregarClientes();
-        carregarVeiculos();
-        carregarRelatorio();
+        if (tokenAcesso) {
+    abrirPainel();
+}
     </script>
 </body>
 </html>
