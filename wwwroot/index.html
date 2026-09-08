@@ -331,6 +331,29 @@
         role="alert"
     ></div>
 
+    <form id="formBuscaVeiculo" class="row g-2 mb-4">
+    <div class="col-md-8">
+        <input
+            id="buscaVeiculo"
+            type="search"
+            class="form-control"
+            placeholder="Buscar por placa, marca, cor, cliente, telefone ou e-mail"
+        >
+    </div>
+
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-primary">
+            Buscar
+        </button>
+    </div>
+
+    <div class="col-md-2 d-grid">
+        <button id="limparBusca" type="button" class="btn btn-outline-secondary">
+            Limpar
+        </button>
+    </div>
+</form>
+
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
@@ -612,8 +635,17 @@ function adicionarCelula(linha, texto) {
     return celula;
 }
 
-async function carregarVeiculos() {
-    const resposta = await apiFetch("/veiculos");
+async function carregarVeiculos(busca = "") {
+    const url = busca.trim()
+        ? `/veiculos?busca=${encodeURIComponent(busca.trim())}`
+        : "/veiculos";
+
+    const resposta = await apiFetch(url);
+
+    if (!resposta.ok) {
+        throw new Error("Não foi possível carregar os veículos.");
+    }
+
     const veiculos = await resposta.json();
 
     const estacionados = veiculos.filter(
@@ -741,6 +773,21 @@ async function registrarSaida(veiculoId, formaPagamento) {
         mensagem.className = "alert alert-danger";
     }
 }
+const formBuscaVeiculo = document.getElementById("formBuscaVeiculo");
+const campoBuscaVeiculo = document.getElementById("buscaVeiculo");
+const botaoLimparBusca = document.getElementById("limparBusca");
+
+formBuscaVeiculo.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+
+    await carregarVeiculos(campoBuscaVeiculo.value);
+});
+
+botaoLimparBusca.addEventListener("click", async function () {
+    campoBuscaVeiculo.value = "";
+    await carregarVeiculos();
+    campoBuscaVeiculo.focus();
+});
         if (tokenAcesso) {
     abrirPainel();
 }

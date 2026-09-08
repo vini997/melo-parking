@@ -95,10 +95,32 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/veiculos", async (AppDbContext banco) =>
+app.MapGet("/veiculos", async (string? busca, AppDbContext banco) =>
 {
-    var veiculos = await banco.Veiculos
+    var consulta = banco.Veiculos
         .Include(v => v.Cliente)
+        .AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(busca))
+    {
+        var termo = $"%{busca.Trim()}%";
+
+        consulta = consulta.Where(v =>
+            EF.Functions.ILike(v.Placa, termo) ||
+            EF.Functions.ILike(v.Marca, termo) ||
+            EF.Functions.ILike(v.Cor, termo) ||
+            (
+                v.Cliente != null &&
+                (
+                    EF.Functions.ILike(v.Cliente.Nome, termo) ||
+                    EF.Functions.ILike(v.Cliente.Telefone, termo) ||
+                    EF.Functions.ILike(v.Cliente.Email, termo)
+                )
+            )
+        );
+    }
+
+    var veiculos = await consulta
         .OrderByDescending(v => v.DataEntrada)
         .ToListAsync();
 
