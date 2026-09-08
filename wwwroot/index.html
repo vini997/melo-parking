@@ -118,6 +118,78 @@
             </p>
         </div>
 
+        <section class="card p-4 mb-4">
+    <h4 class="mb-3">Relatório por período</h4>
+
+    <form id="formRelatorioPeriodo" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label for="dataInicioPeriodo" class="form-label">
+                Data inicial
+            </label>
+            <input
+                id="dataInicioPeriodo"
+                type="date"
+                class="form-control"
+                required
+            >
+        </div>
+
+        <div class="col-md-4">
+            <label for="dataFimPeriodo" class="form-label">
+                Data final
+            </label>
+            <input
+                id="dataFimPeriodo"
+                type="date"
+                class="form-control"
+                required
+            >
+        </div>
+
+        <div class="col-md-4 d-grid">
+            <button
+                id="botaoRelatorioPeriodo"
+                type="submit"
+                class="btn btn-primary"
+            >
+                Gerar relatório
+            </button>
+        </div>
+    </form>
+
+    <div
+        id="mensagemRelatorioPeriodo"
+        class="alert alert-danger d-none mt-3"
+    ></div>
+
+    <div id="resultadoRelatorioPeriodo" class="d-none mt-4">
+        <p id="periodoSelecionado" class="text-secondary"></p>
+
+        <div class="row g-3 text-center">
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <span class="text-secondary">Entradas</span>
+                    <h3 id="totalEntradasPeriodo">0</h3>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <span class="text-secondary">Saídas</span>
+                    <h3 id="totalSaidasPeriodo">0</h3>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <span class="text-secondary">Total recebido</span>
+                    <h3 id="totalRecebidoPeriodo" class="valor">$0.00</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
         <div
             id="mensagemErro"
             class="alert alert-danger d-none"
@@ -788,6 +860,93 @@ botaoLimparBusca.addEventListener("click", async function () {
     await carregarVeiculos();
     campoBuscaVeiculo.focus();
 });
+const formRelatorioPeriodo =
+    document.getElementById("formRelatorioPeriodo");
+
+const dataInicioPeriodo =
+    document.getElementById("dataInicioPeriodo");
+
+const dataFimPeriodo =
+    document.getElementById("dataFimPeriodo");
+
+const botaoRelatorioPeriodo =
+    document.getElementById("botaoRelatorioPeriodo");
+
+const mensagemRelatorioPeriodo =
+    document.getElementById("mensagemRelatorioPeriodo");
+
+const resultadoRelatorioPeriodo =
+    document.getElementById("resultadoRelatorioPeriodo");
+
+const hojeEmMiami = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+}).format(new Date());
+
+dataInicioPeriodo.value = hojeEmMiami;
+dataFimPeriodo.value = hojeEmMiami;
+
+formRelatorioPeriodo.addEventListener(
+    "submit",
+    async function (evento) {
+        evento.preventDefault();
+
+        mensagemRelatorioPeriodo.classList.add("d-none");
+        resultadoRelatorioPeriodo.classList.add("d-none");
+
+        botaoRelatorioPeriodo.disabled = true;
+        botaoRelatorioPeriodo.textContent = "Gerando...";
+
+        try {
+            const inicio = dataInicioPeriodo.value;
+            const fim = dataFimPeriodo.value;
+
+            const resposta = await apiFetch(
+                `/relatorios/periodo?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}`
+            );
+
+            if (!resposta.ok) {
+                const detalhe = await resposta.text();
+
+                throw new Error(
+                    detalhe || "Não foi possível gerar o relatório."
+                );
+            }
+
+            const relatorio = await resposta.json();
+
+            const inicioFormatado = new Date(
+                `${relatorio.inicio}T12:00:00`
+            ).toLocaleDateString("pt-BR");
+
+            const fimFormatado = new Date(
+                `${relatorio.fim}T12:00:00`
+            ).toLocaleDateString("pt-BR");
+
+            document.getElementById("periodoSelecionado").textContent =
+                `Período: ${inicioFormatado} até ${fimFormatado}`;
+
+            document.getElementById("totalEntradasPeriodo").textContent =
+                relatorio.totalEntradas;
+
+            document.getElementById("totalSaidasPeriodo").textContent =
+                relatorio.totalSaidas;
+
+            document.getElementById("totalRecebidoPeriodo").textContent =
+                moeda(relatorio.totalRecebido);
+
+            resultadoRelatorioPeriodo.classList.remove("d-none");
+        } catch (erro) {
+            mensagemRelatorioPeriodo.textContent = erro.message;
+            mensagemRelatorioPeriodo.classList.remove("d-none");
+        } finally {
+            botaoRelatorioPeriodo.disabled = false;
+            botaoRelatorioPeriodo.textContent = "Gerar relatório";
+        }
+    }
+);
         if (tokenAcesso) {
     abrirPainel();
 }

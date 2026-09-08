@@ -404,6 +404,119 @@ app.MapGet("/relatorios/diario", async (AppDbContext banco) =>
     });
 });
 
+app.MapGet("/relatorios/periodo", async (
+    DateOnly? inicio,
+    DateOnly? fim,
+    AppDbContext banco) =>
+{
+    if (!inicio.HasValue || !fim.HasValue)
+    {
+        return Results.BadRequest(
+            "Informe as datas de início e fim."
+        );
+    }
+
+    if (fim.Value < inicio.Value)
+    {
+        return Results.BadRequest(
+            "A data final não pode ser anterior à data inicial."
+        );
+    }
+
+    if (fim.Value.DayNumber - inicio.Value.DayNumber > 366)
+    {
+        return Results.BadRequest(
+            "O período máximo permitido é de 366 dias."
+        );
+    }
+
+    var fusoMiami = TimeZoneInfo.FindSystemTimeZoneById(
+        "America/New_York"
+    );
+
+    var inicioLocal = DateTime.SpecifyKind(
+        inicio.Value.ToDateTime(TimeOnly.MinValue),
+        DateTimeKind.Unspecified
+    );
+
+    var fimLocal = DateTime.SpecifyKind(
+        fim.Value.AddDays(1).ToDateTime(TimeOnly.MinValue),
+        DateTimeKind.Unspecified
+    );
+
+    var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(
+        inicioLocal,
+        fusoMiami
+    );
+
+    var fimUtc = TimeZoneInfo.ConvertTimeToUtc(
+        fimLocal,
+        fusoMiami
+    );
+
+    var entradas = await banco.Veiculos
+        .Include(v => v.Cliente)
+        .Where(v =>
+            v.DataEntrada >= inicioUtc &&
+            v.DataEntrada < fimUtc)
+        .OrderByDescending(v => v.DataEntrada)
+        .ToListAsync();
+
+    var saidas = await banco.Veiculos
+        .Include(v => v.Cliente)
+        .Where(v =>
+            v.DataSaida.HasValue &&
+            v.DataSaida.Value >= inicioUtc &&
+            v.DataSaida.Value < fimUtc)
+        .OrderByDescending(v => v.DataSaida)
+        .ToListAsync();
+
+    decimal Total(string forma) =>
+        saidas
+            .Where(v => v.FormaPagamento == forma)
+            .Sum(v => v.ValorPago ?? 0);
+
+    int Quantidade(string forma) =>
+        saidas.Count(v => v.FormaPagamento == forma);
+
+    return Results.Ok(new
+    {
+        Inicio = inicio.Value.ToString("yyyy-MM-dd"),
+        Fim = fim.Value.ToString("yyyy-MM-dd"),
+
+        TotalEntradas = entradas.Count,
+        TotalSaidas = saidas.Count,
+
+        TotalRecebido = saidas
+            .Sum(v => v.ValorPago ?? 0),
+
+        RecebimentosPorForma = new
+        {
+            Dinheiro = Total("Dinheiro"),
+            Cartao = Total("Cartao"),
+            Zelle = Total("Zelle"),
+            Outro = Total("Outro"),
+            NaoInformado = saidas
+                .Where(v => string.IsNullOrEmpty(v.FormaPagamento))
+                .Sum(v => v.ValorPago ?? 0)
+        },
+
+        QuantidadePorForma = new
+        {
+            Dinheiro = Quantidade("Dinheiro"),
+            Cartao = Quantidade("Cartao"),
+            Zelle = Quantidade("Zelle"),
+            Outro = Quantidade("Outro"),
+            NaoInformado = saidas.Count(
+                v => string.IsNullOrEmpty(v.FormaPagamento)
+            )
+        },
+
+        VeiculosQueEntraram = entradas,
+        VeiculosQueSairam = saidas
+    });
+});
+
 app.MapPost("/login", async (
     LoginRequest dados,
     AppDbContext banco,
