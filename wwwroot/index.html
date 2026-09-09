@@ -187,6 +187,15 @@
                 </div>
             </div>
         </div>
+        <div class="d-flex justify-content-end mt-3">
+            <button
+                id="botaoExportarCsv"
+                type="button"
+                class="btn btn-outline-success"
+            >
+                Exportar CSV
+            </button>
+</div>
     </div>
 </section>
 
@@ -860,6 +869,7 @@ botaoLimparBusca.addEventListener("click", async function () {
     await carregarVeiculos();
     campoBuscaVeiculo.focus();
 });
+let ultimoRelatorioPeriodo = null;
 const formRelatorioPeriodo =
     document.getElementById("formRelatorioPeriodo");
 
@@ -916,6 +926,7 @@ formRelatorioPeriodo.addEventListener(
             }
 
             const relatorio = await resposta.json();
+            ultimoRelatorioPeriodo = relatorio;
 
             const inicioFormatado = new Date(
                 `${relatorio.inicio}T12:00:00`
@@ -947,6 +958,96 @@ formRelatorioPeriodo.addEventListener(
         }
     }
 );
+document
+    .getElementById("botaoExportarCsv")
+    .addEventListener("click", function () {
+        if (!ultimoRelatorioPeriodo) {
+            alert("Gere um relatório antes de exportar.");
+            return;
+        }
+
+        function protegerCsv(valor) {
+            const texto = valor == null ? "" : String(valor);
+            return `"${texto.replaceAll('"', '""')}"`;
+        }
+
+        function formatarDataCsv(valor) {
+            if (!valor) {
+                return "";
+            }
+
+            return new Date(valor).toLocaleString("pt-BR", {
+                timeZone: "America/New_York"
+            });
+        }
+
+        const cabecalho = [
+            "Movimentação",
+            "Placa",
+            "Marca",
+            "Cor",
+            "Cliente",
+            "Telefone",
+            "Entrada",
+            "Saída",
+            "Pagamento",
+            "Valor pago"
+        ];
+
+        const linhas = [cabecalho];
+
+        ultimoRelatorioPeriodo.veiculosQueEntraram.forEach(veiculo => {
+            linhas.push([
+                "Entrada",
+                veiculo.placa,
+                veiculo.marca,
+                veiculo.cor,
+                veiculo.cliente?.nome ?? "",
+                veiculo.cliente?.telefone ?? "",
+                formatarDataCsv(veiculo.dataEntrada),
+                formatarDataCsv(veiculo.dataSaida),
+                veiculo.formaPagamento ?? "",
+                veiculo.valorPago ?? 0
+            ]);
+        });
+
+        ultimoRelatorioPeriodo.veiculosQueSairam.forEach(veiculo => {
+            linhas.push([
+                "Saída",
+                veiculo.placa,
+                veiculo.marca,
+                veiculo.cor,
+                veiculo.cliente?.nome ?? "",
+                veiculo.cliente?.telefone ?? "",
+                formatarDataCsv(veiculo.dataEntrada),
+                formatarDataCsv(veiculo.dataSaida),
+                veiculo.formaPagamento ?? "",
+                veiculo.valorPago ?? 0
+            ]);
+        });
+
+        const conteudoCsv = linhas
+            .map(linha => linha.map(protegerCsv).join(","))
+            .join("\n");
+
+        const arquivo = new Blob(
+            ["\uFEFF" + conteudoCsv],
+            { type: "text/csv;charset=utf-8;" }
+        );
+
+        const endereco = URL.createObjectURL(arquivo);
+        const link = document.createElement("a");
+
+        link.href = endereco;
+        link.download =
+            `melo-parking-${ultimoRelatorioPeriodo.inicio}-a-${ultimoRelatorioPeriodo.fim}.csv`;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(endereco);
+    });
         if (tokenAcesso) {
     abrirPainel();
 }
